@@ -1,12 +1,12 @@
-# Comprehensive Academic Learning Assistant
+# CAPABLE: Academic RAG Assistant
 
-An AI-powered academic assistant that combines multi-source RAG across lecture notes, textbooks, lab manuals, and previous year question papers. Ask questions like “Explain Database Normalization with examples” or “How to solve Q3 from 2023 DBMS paper” and get comprehensive answers blending theory, examples, and practice guidance, with citations.
+CAPABLE is a Streamlit-based academic assistant that uses RAG to search across lecture notes, textbooks, lab manuals, and previous year question papers. Ask questions like “Explain Database Normalization with examples” or “How to solve Q3 from 2023 DBMS paper” and get cited answers grounded in your own study material.
 
 ## Features
 - Multi-document upload (PDF/DOCX/PPTX) and processing
 - FAISS vector index for fast similarity search
 - Topic extraction via spaCy for quick study organization
-- RAG-based answers with source citations
+- RAG-based answers with citations from your documents
 - SQLite for content metadata and (extensible) progress tracking
 - Streamlit academic dashboard and query interface
 
