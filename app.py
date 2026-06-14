@@ -112,17 +112,82 @@ if st.button("Get Answer"):
             )
 
 st.divider()
-
-# Study Tools Section
 st.subheader("📝 Study Tools")
 
 c1, c2, c3 = st.columns(3)
 
 with c1:
-    st.button("Generate Notes")
+    notes_btn = st.button("Generate Notes")
 
 with c2:
-    st.button("Generate MCQs")
+    mcq_btn = st.button("Generate MCQs")
 
 with c3:
-    st.button("Generate Question Bank")
+    qb_btn = st.button("Generate Question Bank")
+
+
+if notes_btn:
+    if not (INDEX_DIR / "index.faiss").exists():
+        st.error("No index found. Please upload and process documents first.")
+    else:
+        try:
+            with st.spinner("Generating study notes..."):
+                res = answer_query(
+                    "Generate comprehensive study notes from the uploaded materials."
+                )
+
+            st.markdown("## 📖 Generated Notes")
+            st.write(res["answer"])
+
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+
+if mcq_btn:
+    if not (INDEX_DIR / "index.faiss").exists():
+        st.error("No index found. Please upload and process documents first.")
+    else:
+        try:
+            with st.spinner("Generating MCQs..."):
+                res = answer_query(
+                    """
+                    Generate 20 multiple choice questions from the uploaded materials.
+                    Each question should contain:
+                    - Question
+                    - Option A
+                    - Option B
+                    - Option C
+                    - Option D
+                    - Correct Answer
+                    """
+                )
+
+            st.markdown("## ✅ Generated MCQs")
+            st.write(res["answer"])
+
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+
+if qb_btn:
+    if not (INDEX_DIR / "index.faiss").exists():
+        st.error("No index found. Please upload and process documents first.")
+    else:
+        try:
+            with st.spinner("Generating Question Bank..."):
+                res = answer_query(
+                    """
+                    Generate an exam-oriented question bank from the uploaded materials.
+
+                    Include:
+                    - 2 Mark Questions
+                    - 5 Mark Questions
+                    - 10 Mark Questions
+                    """
+                )
+
+            st.markdown("## 📝 Generated Question Bank")
+            st.write(res["answer"])
+
+        except Exception as e:
+            st.error(f"Error: {e}")
