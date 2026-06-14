@@ -48,55 +48,81 @@ with st.sidebar:
                 st.error(res.get("error", "Unknown error during ingestion."))
 
 st.divider()
-cols = st.columns([1, 1, 2])
 
-with cols[0]:
-    st.subheader("Subject Dashboard")
-    docs = list_documents()
-    if not docs:
-        st.info("No documents yet. Upload from the sidebar.")
-    else:
-        for d in docs[:10]:
-            st.markdown(f"**{d['name']}** — {d['doc_type']} | {d.get('subject') or 'N/A'} | {d.get('year') or ''}")
+# Uploaded Documents Section
+st.subheader("📚 Uploaded Study Materials")
 
-with cols[1]:
-    st.subheader("Topics (auto-extracted)")
-    subject_filter = st.text_input("Filter subject", value=subject)
-    topics = list_topics(subject=subject_filter.strip() or None)
-    if topics:
-        for t in topics[:20]:
-            st.write(f"- {t['name']} ({t['score']:.2f}) — {t['subject']}")
-    else:
-        st.caption("Topics will appear after document processing.")
+docs = list_documents()
 
-with cols[2]:
-    st.subheader("Comprehensive Query Interface")
-    mode = st.radio("Mode", ["Topic Explanation", "Question Solving"], horizontal=True)
-    query = st.text_area("Ask a question", placeholder="Explain Database Normalization with examples OR How to solve Q3 from 2023 DBMS paper")
-    if st.button("Get Answer"):
-        if not (INDEX_DIR / "index.faiss").exists():
-            st.error("No index found. Please upload and process documents first.")
-        elif not query.strip():
-            st.error("Please enter a query.")
-        else:
-            try:
-                with st.spinner("Reasoning across your materials..."):
-                    res = answer_query(query)
-                st.markdown("### Answer")
-                st.write(res["answer"])  # Streamlit will render markdown
-                st.markdown("### Sources")
-                for s in res["sources"]:
-                    st.write(f"- {s.get('name')} | page {s.get('page')} | {s.get('doc_type')} | {s.get('subject')} | {s.get('year')}")
-            except Exception as e:
-                st.error(f"LLM error: {e}. Please configure LLM_PROVIDER and API key in your environment.")
+if not docs:
+    st.info("No documents uploaded yet. Upload materials from the sidebar.")
+else:
+    for d in docs:
+        with st.expander(f"📄 {d['name']}"):
+            st.write(f"**Type:** {d['doc_type']}")
+            st.write(f"**Subject:** {d.get('subject') or 'N/A'}")
+            st.write(f"**Year:** {d.get('year') or 'N/A'}")
 
 st.divider()
-st.subheader("Content Browser & Export")
-left, right = st.columns([2, 1])
-with left:
-    docs = list_documents()
-    for d in docs:
-        st.write(f"- {d['name']} — {d['doc_type']} | {d.get('subject') or ''} | {d.get('year') or ''}")
-with right:
-    st.caption("Export study guides (coming next)")
-    st.button("Export Topic Summary (soon)")
+
+# Main Query Interface
+st.subheader("🔍 Ask Questions From Uploaded Materials")
+
+mode = st.radio(
+    "Mode",
+    ["Topic Explanation", "Question Solving"],
+    horizontal=True
+)
+
+query = st.text_area(
+    "Ask a question",
+    placeholder="""
+Explain a topic from my notes
+Summarize Chapter 3
+Generate important exam questions
+Create viva questions
+Solve a previous year question
+"""
+)
+
+if st.button("Get Answer"):
+    if not (INDEX_DIR / "index.faiss").exists():
+        st.error("No index found. Please upload and process documents first.")
+    elif not query.strip():
+        st.error("Please enter a query.")
+    else:
+        try:
+            with st.spinner("Reasoning across your materials..."):
+                res = answer_query(query)
+
+            st.markdown("### Answer")
+            st.write(res["answer"])
+
+            st.markdown("### Sources")
+            for s in res["sources"]:
+                st.write(
+                    f"- {s.get('name')} | page {s.get('page')} | "
+                    f"{s.get('doc_type')} | {s.get('subject')} | {s.get('year')}"
+                )
+
+        except Exception as e:
+            st.error(
+                f"LLM error: {e}. Please configure "
+                f"LLM_PROVIDER and API key in your environment."
+            )
+
+st.divider()
+
+# Study Tools Section
+st.subheader("📝 Study Tools")
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.button("Generate Notes")
+
+with c2:
+    st.button("Generate MCQs")
+
+with c3:
+    st.button("Generate Question Bank")

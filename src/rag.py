@@ -2,10 +2,10 @@ from typing import Dict, List, Optional
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.prompts import PromptTemplate
-from langchain.schema import Document
+from langchain_core.prompts import PromptTemplate
+from langchain_core.documents import Document
 
-from .config import INDEX_DIR, EMBEDDING_MODEL, LLM_PROVIDER, OPENAI_API_KEY, GOOGLE_API_KEY
+from .config import INDEX_DIR, EMBEDDING_MODEL, GEMINI_MODEL, LLM_PROVIDER, OPENAI_API_KEY, GOOGLE_API_KEY
 
 # LLMs
 try:
@@ -36,9 +36,20 @@ def get_llm():
     if provider == "OPENAI" and ChatOpenAI and OPENAI_API_KEY:
         return ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
     if provider == "GEMINI" and ChatGoogleGenerativeAI and GOOGLE_API_KEY:
-        return ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.2)
+        return ChatGoogleGenerativeAI(model=GEMINI_MODEL, temperature=0.2)
     # Fallback: raise
     raise RuntimeError("No LLM configured. Set LLM_PROVIDER and API key.")
+
+
+def get_gemini_models() -> List[str]:
+    models = [GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.0-flash"]
+    seen = set()
+    ordered: List[str] = []
+    for model in models:
+        if model and model not in seen:
+            seen.add(model)
+            ordered.append(model)
+    return ordered
 
 
 def load_vectorstore() -> FAISS:
@@ -94,7 +105,6 @@ def retrieve(query: str, filters: Optional[Dict] = None, k: int = 6) -> List[Doc
 
 
 def answer_query(query: str) -> Dict:
-    llm = get_llm()
     filters: Dict = {}
     fq = parse_question_reference(query)
     if fq.get("year"):
@@ -104,6 +114,24 @@ def answer_query(query: str) -> Dict:
     docs = retrieve(query, filters=filters, k=8)
     context = build_context(docs)
     prompt = ANSWER_PROMPT.format(question=query, context=context)
+    provider = (LLM_PROVIDER or "OPENAI").upper()
+    if provider == "GEMINI" and ChatGoogleGenerativeAI and GOOGLE_API_KEY:
+        last_error = None
+        for model_name in get_gemini_models():
+            try:
+                resp = ChatGoogleGenerativeAI(model=model_name, temperature=0.2).invoke(prompt)
+                return {
+                    "answer": resp.content if hasattr(resp, "content") else str(resp),
+                    "sources": [d.metadata for d in docs],
+                }
+            except Exception as exc:
+                last_error = exc
+                message = str(exc)
+                if "NOT_FOUND" not in message and "404" not in message:
+                    raise
+        raise RuntimeError(f"No supported Gemini model available. Last error: {last_error}")
+
+    llm = get_llm()
     resp = llm.invoke(prompt)
     return {
         "answer": resp.content if hasattr(resp, "content") else str(resp),
